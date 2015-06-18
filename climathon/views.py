@@ -14,6 +14,9 @@ def postcode_search(request):
     postcode = request.GET['postcode']
     postcode_info = urllib2.urlopen('http://www.uk-postcodes.com/postcode/{}.json'.format(postcode)).read()
     postcode_info = json.loads(postcode_info)
+    max_dist = 5.
+    if 'max-dist' in request.GET:
+        max_dist = float(request.GET['max-dist'])
     longitude = postcode_info['geo']['lng']
     latitude = postcode_info['geo']['lat']
     sites = urllib2.urlopen('http://api.erg.kcl.ac.uk/Airquality/Information/MonitoringSites/GroupName=London/Json').read()
@@ -24,14 +27,20 @@ def postcode_search(request):
         site_lat = site['@Latitude']
         site_lng = site['@Longitude']
         site['dist'] = vincenty((latitude, longitude), (site_lat, site_lng)).kilometers
-    ordered_sites = sorted(sites, key=lambda x: x['dist'])[:10]
-    output2 = []
+    ordered_sites = sorted(sites, key=lambda x: x['dist'])
+    output2 = {'postcode': {'longitude': longitude, 'latitude': latitude}, 'sites': []}
     current_date = datetime.datetime.now()
+    avg_no2 = {}
+    counter = {}
     for site in ordered_sites:
+        if site['dist'] > 1. * max_dist:
+            continue
         output = {}
         output["site_name"] = site["@SiteName"]
         output["site_code"] = site["@SiteCode"]
         output["site_distance"] = site["dist"]
+        output['site_latitude'] = site['@Latitude']
+        output['site_longitude'] = site['@Longitude']
         output["daily_no2_index"] = []
         for i in range(14):
             date = (current_date - datetime.timedelta(days=1) - datetime.timedelta(days=i)).date()
@@ -41,16 +50,30 @@ def postcode_search(request):
                 continue
             daily_air_quality = json.loads(daily_air_quality)
             no2_index = None
-            print daily_air_quality["DailyAirQualityIndex"]
-            print daily_air_quality["DailyAirQualityIndex"]["LocalAuthority"]["Site"]
             species = daily_air_quality["DailyAirQualityIndex"]["LocalAuthority"]["Site"]["Species"]
             if type(species) == list:
                 for x in species:
                     if x["@SpeciesCode"] == "NO2":
-                        no2_index = x["@AirQualityIndex"]
+                        no2_index = int(x["@AirQualityIndex"])
                 output["daily_no2_index"] += [{"date": str(date), "no2_index": no2_index}]
             elif type(species) == dict:
                 if species["@SpeciesCode"] == "NO2":
                     no2_index = species["@AirQualityIndex"]
-        output2 += [output]
+            if date not in avg_no2:
+                avg_no2[date] = 0.
+                counter[date] = 0
+            if no2_index != None:
+                avg_no2[date] += int(no2_index)
+                counter[date] += 1
+        output2['sites'] += [output]
+    # averaged data
+    avg_data = {'dist': 0.}
+    for site in output2['sites']:
+        avg_data['dist'] += site['site_distance'] * 1. / len(output2['sites'])
+    avg_data['avg_no2'] = []
+    for date in avg_no2:
+        avg_no2[date] = avg_no2[date] * 1. / counter[date]
+        avg_data['avg_no2'] += [{'date': str(date), 'avg_no2': avg_no2[date]}]
+    output2['avg_data'] = avg_data
+            
     return HttpResponse(json.dumps(output2), content_type="application/json")

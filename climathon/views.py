@@ -36,44 +36,44 @@ def postcode_search(request):
     current_date = datetime.datetime.now()
     for site in ordered_sites:
         output = {}
-        output['site_name'] = site['@SiteName']
-        output['site_code'] = site['@SiteCode']
-        output['site_distance'] = site['dist']
-        output['daily_no2_index'] = []
+        output["site_name"] = site["@SiteName"]
+        output["site_code"] = site["@SiteCode"]
+        output["site_distance"] = site["dist"]
+        output["daily_no2_index"] = []
 #         for i in range(30):
         for i in range(365):
             date = (current_date - datetime.timedelta(days=1) - datetime.timedelta(days=i)).date()
             try:
-                daily_air_quality = urllib2.urlopen('http://api.erg.kcl.ac.uk/Airquality/Daily/MonitoringIndex/SiteCode={}/Date={}/Json'.format(output['site_code'], date)).read()
+                daily_air_quality = urllib2.urlopen("http://api.erg.kcl.ac.uk/Airquality/Daily/MonitoringIndex/SiteCode={}/Date={}/Json".format(output["site_code"], date)).read()
             except:
                 continue
             daily_air_quality = json.loads(daily_air_quality)
             no2_index = None
-            print daily_air_quality['DailyAirQualityIndex']
-            print daily_air_quality['DailyAirQualityIndex']['LocalAuthority']['Site']
-            species = daily_air_quality['DailyAirQualityIndex']['LocalAuthority']['Site']['Species']
+            print daily_air_quality["DailyAirQualityIndex"]
+            print daily_air_quality["DailyAirQualityIndex"]["LocalAuthority"]["Site"]
+            species = daily_air_quality["DailyAirQualityIndex"]["LocalAuthority"]["Site"]["Species"]
             if type(species) == list:
                 for x in species:
-                    if x['@SpeciesCode'] == 'NO2':
-                        no2_index = x['@AirQualityIndex']
-                output['daily_no2_index'] += [{'date': str(date), 'no2_index': no2_index}]
+                    if x["@SpeciesCode"] == "NO2":
+                        no2_index = x["@AirQualityIndex"]
+                output["daily_no2_index"] += [{"date": str(date), "no2_index": no2_index}]
             elif type(species) == dict:
-                if species['@SpeciesCode'] == 'NO2':
-                    no2_index = species['@AirQualityIndex']
-#         if site['monitoring_index'] == None:
-#             print 'no data'
+                if species["@SpeciesCode"] == "NO2":
+                    no2_index = species["@AirQualityIndex"]
+#         if site["monitoring_index"] == None:
+#             print "no data"
 #             continue
 #         else:
-#             if type(site['monitoring_index']) == dict:
-#                 if site['monitoring_index']['@SpeciesCode'] == 'NO2':
-#                     output['NO2Index'] = site['monitoring_index']['@AirQualityIndex']
-#             elif type(site['monitoring_index']) == list:
-#                 print 'type list'
-#                 for x in site['monitoring_index']:
-#                     if x['@SpeciesCode'] == 'NO2':
-#                         output['NO2Index'] = x['@AirQualityIndex']
+#             if type(site["monitoring_index"]) == dict:
+#                 if site["monitoring_index"]["@SpeciesCode"] == "NO2":
+#                     output["NO2Index"] = site["monitoring_index"]["@AirQualityIndex"]
+#             elif type(site["monitoring_index"]) == list:
+#                 print "type list"
+#                 for x in site["monitoring_index"]:
+#                     if x["@SpeciesCode"] == "NO2":
+#                         output["NO2Index"] = x["@AirQualityIndex"]
 #                     break
 #             else:
 #                 continue
         output2 += [output]
-    return HttpResponse('{}'.format(output2), content_type="application/json")
+    return HttpResponse("{}".format(output2), content_type="application/json")

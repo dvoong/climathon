@@ -1,0 +1,3 @@
+name: pollupla-api
+command: python ./manage.py runserver $VCAP_APP_HOST:$PORT
+

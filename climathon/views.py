@@ -24,14 +24,7 @@ def postcode_search(request):
         site_lat = site['@Latitude']
         site_lng = site['@Longitude']
         site['dist'] = vincenty((latitude, longitude), (site_lat, site_lng)).kilometers
-    ordered_sites = sorted(sites, key=lambda x: x['dist'])[:1]
-#     for site in ordered_sites:
-#         monitoring_index = urllib2.urlopen('http://api.erg.kcl.ac.uk/Airquality/Hourly/MonitoringIndex/SiteCode={}/Json'.format(site['@SiteCode'])).read()
-#         monitoring_index = json.loads(monitoring_index)
-#         try:
-#             site['monitoring_index'] = monitoring_index['HourlyAirQualityIndex']['LocalAuthority']['Site']['species']
-#         except TypeError:
-#             site['monitoring_index'] = None
+    ordered_sites = sorted(sites, key=lambda x: x['dist'])[:10]
     output2 = []
     current_date = datetime.datetime.now()
     for site in ordered_sites:
@@ -40,8 +33,7 @@ def postcode_search(request):
         output["site_code"] = site["@SiteCode"]
         output["site_distance"] = site["dist"]
         output["daily_no2_index"] = []
-#         for i in range(30):
-        for i in range(365):
+        for i in range(14):
             date = (current_date - datetime.timedelta(days=1) - datetime.timedelta(days=i)).date()
             try:
                 daily_air_quality = urllib2.urlopen("http://api.erg.kcl.ac.uk/Airquality/Daily/MonitoringIndex/SiteCode={}/Date={}/Json".format(output["site_code"], date)).read()
@@ -60,20 +52,5 @@ def postcode_search(request):
             elif type(species) == dict:
                 if species["@SpeciesCode"] == "NO2":
                     no2_index = species["@AirQualityIndex"]
-#         if site["monitoring_index"] == None:
-#             print "no data"
-#             continue
-#         else:
-#             if type(site["monitoring_index"]) == dict:
-#                 if site["monitoring_index"]["@SpeciesCode"] == "NO2":
-#                     output["NO2Index"] = site["monitoring_index"]["@AirQualityIndex"]
-#             elif type(site["monitoring_index"]) == list:
-#                 print "type list"
-#                 for x in site["monitoring_index"]:
-#                     if x["@SpeciesCode"] == "NO2":
-#                         output["NO2Index"] = x["@AirQualityIndex"]
-#                     break
-#             else:
-#                 continue
         output2 += [output]
-    return HttpResponse("{}".format(output2), content_type="application/json")
+    return HttpResponse(json.dumps(output2), content_type="application/json")

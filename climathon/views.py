@@ -15,6 +15,7 @@ def postcode_search(request):
     postcode = request.GET['postcode']
     postcode_info = urllib2.urlopen('http://www.uk-postcodes.com/postcode/{}.json'.format(postcode)).read()
     postcode_info = json.loads(postcode_info)
+    properties = [{'latitude': x.split(',')[0], 'longitude': x.split(',')[1]} for x in request.GET.getlist('property')]
     max_dist = 5.
     if 'max-dist' in request.GET:
         max_dist = float(request.GET['max-dist'])

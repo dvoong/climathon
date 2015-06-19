@@ -13,15 +13,16 @@ def index(request):
 def plots(request):
     return render(request, 'climathon/plots.html')
 
-def postcode_search(request):
-    postcode = request.GET['postcode']
-    postcode_info = urllib2.urlopen('http://www.uk-postcodes.com/postcode/{}.json'.format(postcode)).read()
-    postcode_info = json.loads(postcode_info)
+def search(request, lng, lat):
+    postcode = None
+    if 'postcode' in request.GET:
+        postcode = request.GET['postcode']
     max_dist = 5.
     if 'max-dist' in request.GET:
         max_dist = float(request.GET['max-dist'])
-    longitude = postcode_info['geo']['lng']
-    latitude = postcode_info['geo']['lat']
+    n_days = 14
+    if 'n-days' in request.GET:
+        n_days = int(request.GET['n-days'])
     sites = urllib2.urlopen('http://api.erg.kcl.ac.uk/Airquality/Information/MonitoringSites/GroupName=London/Json').read()
     sites = json.loads(sites)
     sites = sites['Sites']['Site']
@@ -29,9 +30,12 @@ def postcode_search(request):
     for site in sites:
         site_lat = site['@Latitude']
         site_lng = site['@Longitude']
-        site['dist'] = vincenty((latitude, longitude), (site_lat, site_lng)).kilometers
+        site['dist'] = vincenty((lat, lng), (site_lat, site_lng)).kilometers
     ordered_sites = sorted(sites, key=lambda x: x['dist'])
-    output2 = {'postcode': {'longitude': longitude, 'latitude': latitude}, 'sites': []}
+    # output2 = {'postcode': {'postcode': postcode, 'longitude': '{:.3f}'.format(lng), 'latitude': '{:.3f}'.format(lat)}, 'sites': []}
+    output2 = {'location': {'longitude': '{:.3f}'.format(lng), 'latitude': '{:.3f}'.format(lat)}, 'sites': []}
+    if postcode:
+        output2['location']['postcode'] = postcode
     current_date = datetime.datetime.now()
     avg_no2 = {}
     counter = {}
@@ -41,11 +45,11 @@ def postcode_search(request):
         output = {}
         output["site_name"] = site["@SiteName"]
         output["site_code"] = site["@SiteCode"]
-        output["site_distance"] = site["dist"]
+        output["site_distance"] = '{:.2f}'.format(site["dist"])
         output['site_latitude'] = site['@Latitude']
         output['site_longitude'] = site['@Longitude']
         output["daily_no2_index"] = []
-        for i in range(14):
+        for i in range(n_days):
             date = (current_date - datetime.timedelta(days=1) - datetime.timedelta(days=i)).date()
             try:
                 daily_air_quality = urllib2.urlopen("http://api.erg.kcl.ac.uk/Airquality/Daily/MonitoringIndex/SiteCode={}/Date={}/Json".format(output["site_code"], date)).read()
@@ -72,8 +76,12 @@ def postcode_search(request):
         output2['sites'] += [output]
     # averaged data
     avg_data = {'dist': 0.}
-    for site in output2['sites']:
-        avg_data['dist'] += site['site_distance'] * 1. / len(output2['sites'])
+    # for site in output2['sites']:
+    for site in ordered_sites:
+        try:
+            avg_data['dist'] += site['dist'] * 1. / len(output2['sites'])
+        except ZeroDivisionError:
+            avg_data['dist'] += 0
     avg_data['avg_no2'] = []
     for date in sorted(avg_no2):
         avg_no2[date] = avg_no2[date] * 1. / counter[date]
@@ -81,3 +89,17 @@ def postcode_search(request):
     output2['avg_data'] = avg_data
             
     return HttpResponse(json.dumps(output2), content_type="application/json")
+    
+
+def lng_lat_search(request):
+    lng = float(request.GET['lng'])
+    lat = float(request.GET['lat'])
+    return search(request, lng, lat)
+    
+def postcode_search(request):
+    postcode = request.GET['postcode']
+    postcode_info = urllib2.urlopen('http://www.uk-postcodes.com/postcode/{}.json'.format(postcode)).read()
+    postcode_info = json.loads(postcode_info)
+    longitude = postcode_info['geo']['lng']
+    latitude = postcode_info['geo']['lat']
+    return search(request, longitude, latitude)

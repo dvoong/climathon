@@ -6,6 +6,7 @@ import geopy
 from django.http import HttpResponse
 from django.shortcuts import render
 from geopy.distance import vincenty
+import grequests
 
 def index(request):
     return render(request, 'climathon/index.html')
@@ -17,6 +18,7 @@ def postcode_search(request):
     postcode = request.GET['postcode']
     postcode_info = urllib2.urlopen('http://www.uk-postcodes.com/postcode/{}.json'.format(postcode)).read()
     postcode_info = json.loads(postcode_info)
+    properties = [{'latitude': x.split(',')[0], 'longitude': x.split(',')[1]} for x in request.GET.getlist('property')]
     max_dist = 5.
     if 'max-dist' in request.GET:
         max_dist = float(request.GET['max-dist'])
@@ -45,13 +47,15 @@ def postcode_search(request):
         output['site_latitude'] = site['@Latitude']
         output['site_longitude'] = site['@Longitude']
         output["daily_no2_index"] = []
+        daily_urls = []
         for i in range(14):
             date = (current_date - datetime.timedelta(days=1) - datetime.timedelta(days=i)).date()
-            try:
-                daily_air_quality = urllib2.urlopen("http://api.erg.kcl.ac.uk/Airquality/Daily/MonitoringIndex/SiteCode={}/Date={}/Json".format(output["site_code"], date)).read()
-            except:
-                continue
-            daily_air_quality = json.loads(daily_air_quality)
+            daily_urls.append("http://api.erg.kcl.ac.uk/Airquality/Daily/MonitoringIndex/SiteCode={}/Date={}/Json".format(output["site_code"], date))
+        rs = (grequests.get(u) for u in daily_urls)
+        all_air_quality = grequests.map(rs)
+        valid_air_quality = [x for x in all_air_quality if x.status_code == 200]
+        for daily_air_quality in valid_air_quality:
+            daily_air_quality = json.loads(daily_air_quality.content)
             no2_index = None
             species = daily_air_quality["DailyAirQualityIndex"]["LocalAuthority"]["Site"]["Species"]
             if type(species) == list:

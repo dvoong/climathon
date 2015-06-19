@@ -1,4 +1,14 @@
-<form method="get" action="/postcode-search">
-  <label>Postcode</label><input type="text" name="postcode" />
-  <button type="submit">Submit</button>
-<form>
+<div>
+  <form method="get" action="/postcode-search">
+    <label>Postcode</label><input type="text" name="postcode" />
+    <button type="submit">Submit</button>
+  </form>
+</div>
+
+<div>
+  <form method="get" action="/lng-lat-search">
+    <label>Longitude</label><input type="number" step="0.01" name="lng" />
+    <label>Latitude</label><input type="number" step="0.01" name="lat" />
+    <button type="submit">Submit</button>
+  </form>
+</div>

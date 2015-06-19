@@ -20,5 +20,7 @@ from climathon import views
 urlpatterns = [
     url(r'^$', views.index),
     url(r'^postcode-search', views.postcode_search),
+    url(r'^lng-lat-search', views.lng_lat_search),
+    url(r'^plots$', views.plots),
     url(r'^admin/', include(admin.site.urls)),
 ]

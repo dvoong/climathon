@@ -46,7 +46,9 @@ def search(request, lng, lat):
     counter = {}
     for site in ordered_sites:
         if site['dist'] > 1. * max_dist:
+            site['exclude'] = True
             continue
+        site['exclude'] = False
         output = {}
         output["site_name"] = site["@SiteName"]
         output["site_code"] = site["@SiteCode"]
@@ -106,15 +108,18 @@ def search(request, lng, lat):
         total_distance = 0.
         n_sites_queried = 0
         for site in ordered_sites:
-            if site['dist'] > 1. * max_dist:
+            if site['exclude']:
                 continue
+            site_lat = site['@Latitude']
+            site_lng = site['@Longitude']
+            site['dist'] = vincenty((lat, lng), (site_lat, site_lng)).kilometers
             if len(site['daily_no2_index']) != 0:
                 total_distance += site['dist']
                 n_sites_queried += 1
-                # print site['@SiteName'], site['dist']
-        # print 'total_distance: {}'.format(total_distance)
+                print site['@SiteName'], site['dist']
+        print 'total_distance: {}'.format(total_distance)
         for site in ordered_sites:
-            if site['dist'] > 1. * max_dist:
+            if site['exclude'] == True:
                 continue
             avg_no2_index = 0.
             sum = 0

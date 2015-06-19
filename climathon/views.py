@@ -119,7 +119,9 @@ def search(request, lng, lat):
             avg_no2_index = 0.
             sum = 0
             for x in site['daily_no2_index']:
-                sum += x['no2_index']
+                print sum
+                print x
+                sum += int(x['no2_index'])
             if sum:
                 avg_no2_index = sum * 1. / len(site['daily_no2_index'])
             property_avg_no2_index += avg_no2_index * site['dist'] * 1. / total_distance

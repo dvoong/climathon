@@ -50,8 +50,8 @@ def postcode_search(request):
             daily_urls.append("http://api.erg.kcl.ac.uk/Airquality/Daily/MonitoringIndex/SiteCode={}/Date={}/Json".format(output["site_code"], date))
         rs = (grequests.get(u) for u in daily_urls)
         all_air_quality = grequests.map(rs)
-        good_air_quality = [x for x in all_air_quality if x.status_code == 200]
-        for daily_air_quality in good_air_quality:
+        valid_air_quality = [x for x in all_air_quality if x.status_code == 200]
+        for daily_air_quality in valid_air_quality:
             daily_air_quality = json.loads(daily_air_quality.content)
             no2_index = None
             species = daily_air_quality["DailyAirQualityIndex"]["LocalAuthority"]["Site"]["Species"]

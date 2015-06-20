@@ -116,16 +116,16 @@ def search(request, lng, lat):
             if len(site['daily_no2_index']) != 0:
                 total_distance += site['dist']
                 n_sites_queried += 1
-                print site['@SiteName'], site['dist']
-        print 'total_distance: {}'.format(total_distance)
+                # print site['@SiteName'], site['dist']
+        # print 'total_distance: {}'.format(total_distance)
         for site in ordered_sites:
             if site['exclude'] == True:
                 continue
             avg_no2_index = 0.
             sum = 0
             for x in site['daily_no2_index']:
-                print sum
-                print x
+                # print sum
+                # print x
                 sum += int(x['no2_index'])
             if sum:
                 avg_no2_index = sum * 1. / len(site['daily_no2_index'])
